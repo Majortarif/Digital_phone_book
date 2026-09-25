@@ -9,7 +9,7 @@
 [![IDE](https://img.shields.io/badge/Built%20with-Code::Blocks-1E90FF?style=for-the-badge)](#)
 [![Status](https://img.shields.io/badge/Status-Active-5FC7B3?style=for-the-badge)](#)
 
-🔴 **[Live Web Demo](https://majortarif.github.io/REPO-NAME/)** — try the browser version, no setup needed
+
 
 </div>
 
