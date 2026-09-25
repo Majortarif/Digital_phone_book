@@ -15,12 +15,7 @@
 
 ---
 
-## 📸 Preview
 
-> Add a screenshot or short GIF of the console app running here — it's the single
-> biggest thing that makes a project README stand out.
->
-> `![demo](assets/demo.gif)`
 
 ---
 
