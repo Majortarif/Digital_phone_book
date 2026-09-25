@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Digital Phonebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0E1522; --panel:#152036; --line:#24314D; --ink:#E7ECF5; --muted:#8CA0C2;
+  --amber:#E3A34D; --teal:#5FC7B3; --danger:#E2665F;
+  padding-top: env(safe-area-inset-top,0px); padding-bottom: env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){ --bg:#0E1522; --panel:#152036; --line:#24314D; --ink:#E7ECF5; --muted:#8CA0C2; }
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg); color:var(--ink); font-family:Inter,system-ui,sans-serif;
+  display:flex; min-height:100%;
+}
+h1,h2,h3,.brand,.tab,.stat-num{font-family:"Space Grotesk",system-ui,sans-serif}
+
+/* ---- Rail ---- */
+.rail{
+  width:210px; flex:0 0 210px; background:var(--panel); border-right:1px solid var(--line);
+  padding:24px 0; display:flex; flex-direction:column; gap:4px;
+}
+.brand{padding:0 20px 20px; font-size:18px; font-weight:700; letter-spacing:.2px}
+.brand span{color:var(--amber)}
+.tab{
+  display:flex; align-items:center; gap:10px; padding:12px 20px; color:var(--muted);
+  cursor:pointer; border-left:3px solid transparent; font-size:14px; font-weight:500;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.tab:hover{background:rgba(255,255,255,.03)}
+.tab.active{color:var(--ink); border-left-color:var(--amber); background:rgba(227,163,77,.08)}
+.tab .n{margin-left:auto; color:var(--muted); font-size:12px}
+
+/* ---- Main ---- */
+.main{flex:1; min-width:0; padding:28px 32px; max-width:900px}
+.topline{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:20px}
+h1{font-size:22px; margin:0 0 4px}
+.sub{color:var(--muted); font-size:14px; margin:0}
+.actions{display:flex; gap:10px}
+button{font-family:inherit; cursor:pointer}
+.btn{
+  background:var(--teal); color:#0B1220; border:none; padding:10px 16px; border-radius:6px;
+  font-weight:600; font-size:13px;
+}
+.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line)}
+.btn.danger{background:var(--danger); color:#1a0a08}
+.search{
+  width:100%; background:var(--panel); border:1px solid var(--line); color:var(--ink);
+  padding:10px 12px; border-radius:6px; font-size:14px; margin-bottom:16px;
+}
+.search:focus{outline:1px solid var(--amber)}
+
+/* ---- Rows ---- */
+.row{
+  display:flex; align-items:center; gap:14px; padding:13px 14px; background:var(--panel);
+  border:1px solid var(--line); border-left:4px solid var(--group-color,var(--amber));
+  border-radius:4px; margin-bottom:8px;
+}
+.row .who{flex:1; min-width:0}
+.row .name{font-weight:600; font-size:14.5px}
+.row .meta{color:var(--muted); font-size:12.5px; margin-top:2px}
+.badge{font-size:11px; color:var(--muted); border:1px solid var(--line); border-radius:4px; padding:2px 6px}
+.row .ops{display:flex; gap:8px; flex:0 0 auto}
+.iconbtn{
+  background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:5px;
+  width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:14px;
+}
+.iconbtn.on{color:var(--amber); border-color:var(--amber)}
+.empty{color:var(--muted); font-size:14px; padding:30px 0; text-align:center; border:1px dashed var(--line); border-radius:6px}
+
+/* ---- Stats ---- */
+.stat-grid{display:flex; gap:12px; margin-bottom:22px; flex-wrap:wrap}
+.stat{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:14px 18px; min-width:120px}
+.stat-num{font-size:24px; font-weight:700}
+.stat-label{color:var(--muted); font-size:12px; margin-top:2px}
+.bar-row{display:flex; align-items:center; gap:10px; font-size:13px; margin-bottom:7px}
+.bar-row .label{width:100px; color:var(--muted); flex:0 0 100px}
+.bar-track{flex:1; height:8px; background:var(--line); border-radius:4px; overflow:hidden}
+.bar-fill{height:100%; background:var(--amber)}
+.bar-row .count{width:24px; text-align:right; color:var(--muted)}
+
+/* ---- Side panel ---- */
+.overlay{position:fixed; inset:0; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .2s}
+.overlay.show{opacity:1; pointer-events:auto}
+.panel{
+  position:fixed; top:0; right:0; height:100%; width:380px; max-width:92vw; background:var(--panel);
+  border-left:1px solid var(--line); transform:translateX(100%); transition:transform .25s ease;
+  padding:24px 22px; overflow-y:auto;
+}
+.panel.show{transform:translateX(0)}
+.panel h2{font-size:17px; margin:0 0 18px}
+label{display:block; font-size:12px; color:var(--muted); margin:12px 0 5px}
+input,select,textarea{
+  width:100%; background:#0E1522; border:1px solid var(--line); color:var(--ink);
+  padding:9px 10px; border-radius:5px; font-size:13.5px; font-family:inherit;
+}
+textarea{resize:vertical; min-height:50px}
+.panel-actions{display:flex; gap:10px; margin-top:20px}
+.err{color:var(--danger); font-size:12px; margin-top:6px; min-height:14px}
+.toast{
+  position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+  background:var(--teal); color:#0B1220; padding:10px 18px; border-radius:6px; font-size:13px;
+  font-weight:600; transition:opacity .2s, transform .2s; pointer-events:none;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+@media (max-width:720px){
+  body{flex-direction:column}
+  .rail{width:100%; flex-direction:row; overflow-x:auto; padding:10px 8px}
+  .tab{border-left:none; border-bottom:3px solid transparent; padding:10px 14px; white-space:nowrap}
+  .tab.active{border-left-color:transparent; border-bottom-color:var(--amber)}
+  .main{padding:18px}
+}
+</style>
+</head>
+<body>
+
+<nav class="rail">
+  <div class="brand">Digital <span>Phonebook</span></div>
+  <div class="tab active" data-tab="dashboard">Dashboard</div>
+  <div class="tab" data-tab="contacts">Contacts <span class="n" id="count-all"></span></div>
+  <div class="tab" data-tab="favorites">Favorites <span class="n" id="count-fav"></span></div>
+  <div class="tab" data-tab="blocked">Blocked <span class="n" id="count-blocked"></span></div>
+</nav>
+
+<main class="main">
+  <div id="view-dashboard">
+    <div class="topline">
+      <div><h1>Dashboard</h1><p class="sub">An overview of your address book.</p></div>
+      <div class="actions">
+        <button class="btn ghost" id="export-btn">Export JSON</button>
+        <button class="btn" id="new-btn-dash">+ New contact</button>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total contacts</div></div>
+      <div class="stat"><div class="stat-num" id="stat-fav">0</div><div class="stat-label">Favorites</div></div>
+      <div class="stat"><div class="stat-num" id="stat-blocked">0</div><div class="stat-label">Blocked</div></div>
+    </div>
+    <h3>By group</h3>
+    <div id="group-bars"></div>
+  </div>
+
+  <div id="view-contacts" style="display:none">
+    <div class="topline">
+      <div><h1>Contacts</h1><p class="sub">Everyone in your book.</p></div>
+      <div class="actions"><button class="btn" id="new-btn">+ New contact</button></div>
+    </div>
+    <input class="search" id="search" placeholder="Search by name, phone, email, company...">
+    <div id="list-contacts"></div>
+  </div>
+
+  <div id="view-favorites" style="display:none">
+    <h1>Favorites</h1><p class="sub">Contacts you starred.</p>
+    <div id="list-favorites" style="margin-top:16px"></div>
+  </div>
+
+  <div id="view-blocked" style="display:none">
+    <h1>Blocked</h1><p class="sub">Contacts you blocked.</p>
+    <div id="list-blocked" style="margin-top:16px"></div>
+  </div>
+</main>
+
+<div class="overlay" id="overlay"></div>
+<div class="panel" id="panel">
+  <h2 id="panel-title">New contact</h2>
+  <input type="hidden" id="f-id">
+  <label>Name</label><input id="f-name">
+  <label>Phone</label><input id="f-phone">
+  <label>Email</label><input id="f-email">
+  <label>Group</label>
+  <select id="f-group">
+    <option value="Family">Family</option>
+    <option value="Friend">Friend</option>
+    <option value="Colleague">Colleague</option>
+    <option value="Emergency">Emergency</option>
+    <option value="Other">Other</option>
+  </select>
+  <label>Company</label><input id="f-company">
+  <label>Address</label><input id="f-address">
+  <label>Notes</label><textarea id="f-notes"></textarea>
+  <div class="err" id="f-err"></div>
+  <div class="panel-actions">
+    <button class="btn" id="save-btn">Save contact</button>
+    <button class="btn ghost" id="cancel-btn">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GROUPS = ["Family","Friend","Colleague","Emergency","Other"];
+const GROUP_COLOR = {Family:"#5FC7B3",Friend:"#E3A34D",Colleague:"#8CA0C2",Emergency:"#E2665F",Other:"#B98AE0"};
+let contacts = [];
+let editingId = null;
+
+function load(){
+  try{ contacts = JSON.parse(localStorage.getItem("phonebook_contacts") || "[]"); }
+  catch(e){ contacts = []; }
+}
+function save(){
+  try{ localStorage.setItem("phonebook_contacts", JSON.stringify(contacts)); }
+  catch(e){ toast("Could not save — storage unavailable."); }
+}
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._h);
+  toast._h = setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
+  ["dashboard","contacts","favorites","blocked"].forEach(v=>{
+    document.getElementById("view-"+v).style.display = (v===name)?"block":"none";
+  });
+  renderAll();
+}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click", ()=>switchTab(t.dataset.tab)));
+
+function rowHTML(c){
+  const color = GROUP_COLOR[c.group] || "#E3A34D";
+  return `<div class="row" style="--group-color:${color}">
+    <div class="who">
+      <div class="name">${esc(c.name)}</div>
+      <div class="meta">${esc(c.phone)} &nbsp;&middot;&nbsp; ${esc(c.email||"—")} &nbsp; <span class="badge">${esc(c.group)}</span></div>
+    </div>
+    <div class="ops">
+      <button class="iconbtn ${c.favorite?'on':''}" title="Favorite" onclick="toggleFav('${c.id}')">&#9733;</button>
+      <button class="iconbtn ${c.blocked?'on':''}" title="Block" onclick="toggleBlock('${c.id}')">&#128683;</button>
+      <button class="iconbtn" title="Edit" onclick="openEdit('${c.id}')">&#9998;</button>
+      <button class="iconbtn" title="Delete" onclick="remove('${c.id}')">&#10005;</button>
+    </div>
+  </div>`;
+}
+function esc(s){ return (s||"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+
+function renderList(el, items){
+  el.innerHTML = items.length ? items.map(rowHTML).join("") :
+    `<div class="empty">No contacts here yet.</div>`;
+}
+
+function renderAll(){
+  const q = (document.getElementById("search").value||"").toLowerCase();
+  const filtered = contacts.filter(c =>
+    !q || [c.name,c.phone,c.email,c.company].some(v=>(v||"").toLowerCase().includes(q))
+  );
+  renderList(document.getElementById("list-contacts"), filtered);
+  renderList(document.getElementById("list-favorites"), contacts.filter(c=>c.favorite));
+  renderList(document.getElementById("list-blocked"), contacts.filter(c=>c.blocked));
+
+  document.getElementById("count-all").textContent = contacts.length || "";
+  document.getElementById("count-fav").textContent = contacts.filter(c=>c.favorite).length || "";
+  document.getElementById("count-blocked").textContent = contacts.filter(c=>c.blocked).length || "";
+
+  document.getElementById("stat-total").textContent = contacts.length;
+  document.getElementById("stat-fav").textContent = contacts.filter(c=>c.favorite).length;
+  document.getElementById("stat-blocked").textContent = contacts.filter(c=>c.blocked).length;
+
+  const max = Math.max(1, ...GROUPS.map(g=>contacts.filter(c=>c.group===g).length));
+  document.getElementById("group-bars").innerHTML = GROUPS.map(g=>{
+    const n = contacts.filter(c=>c.group===g).length;
+    return `<div class="bar-row"><div class="label">${g}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(n/max*100)||0}%;background:${GROUP_COLOR[g]}"></div></div>
+      <div class="count">${n}</div></div>`;
+  }).join("");
+}
+document.getElementById("search").addEventListener("input", renderAll);
+
+function openPanel(title){
+  document.getElementById("panel-title").textContent = title;
+  document.getElementById("panel").classList.add("show");
+  document.getElementById("overlay").classList.add("show");
+}
+function closePanel(){
+  document.getElementById("panel").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");
+  editingId = null;
+  ["f-id","f-name","f-phone","f-email","f-company","f-address","f-notes"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("f-group").value = "Family";
+  document.getElementById("f-err").textContent = "";
+}
+function openNew(){ closePanel(); openPanel("New contact"); }
+function openEdit(id){
+  const c = contacts.find(x=>x.id===id); if(!c) return;
+  closePanel(); editingId = id;
+  document.getElementById("f-id").value = c.id;
+  document.getElementById("f-name").value = c.name;
+  document.getElementById("f-phone").value = c.phone;
+  document.getElementById("f-email").value = c.email||"";
+  document.getElementById("f-group").value = c.group;
+  document.getElementById("f-company").value = c.company||"";
+  document.getElementById("f-address").value = c.address||"";
+  document.getElementById("f-notes").value = c.notes||"";
+  openPanel("Edit contact");
+}
+document.getElementById("new-btn").addEventListener("click", openNew);
+document.getElementById("new-btn-dash").addEventListener("click", openNew);
+document.getElementById("cancel-btn").addEventListener("click", closePanel);
+document.getElementById("overlay").addEventListener("click", closePanel);
+
+document.getElementById("save-btn").addEventListener("click", ()=>{
+  const name = document.getElementById("f-name").value.trim();
+  const phone = document.getElementById("f-phone").value.trim();
+  if(!name || !phone){
+    document.getElementById("f-err").textContent = "Name and phone are required.";
+    return;
+  }
+  const data = {
+    name, phone,
+    email: document.getElementById("f-email").value.trim(),
+    group: document.getElementById("f-group").value,
+    company: document.getElementById("f-company").value.trim(),
+    address: document.getElementById("f-address").value.trim(),
+    notes: document.getElementById("f-notes").value.trim(),
+  };
+  if(editingId){
+    const c = contacts.find(x=>x.id===editingId);
+    Object.assign(c, data);
+    toast("Contact updated.");
+  } else {
+    contacts.push(Object.assign({id: "c"+Date.now(), favorite:false, blocked:false}, data));
+    toast("Contact added.");
+  }
+  save(); closePanel(); renderAll();
+});
+
+function toggleFav(id){ const c = contacts.find(x=>x.id===id); c.favorite = !c.favorite; save(); renderAll();
+  toast(c.favorite ? "Added to favorites." : "Removed from favorites."); }
+function toggleBlock(id){ const c = contacts.find(x=>x.id===id); c.blocked = !c.blocked; save(); renderAll();
+  toast(c.blocked ? "Contact blocked." : "Contact unblocked."); }
+function remove(id){
+  contacts = contacts.filter(x=>x.id!==id); save(); renderAll(); toast("Contact removed.");
+}
+window.toggleFav = toggleFav; window.toggleBlock = toggleBlock; window.remove = remove; window.openEdit = openEdit;
+
+document.getElementById("export-btn").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(contacts, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "contacts_export.json"; a.click();
+});
+
+load();
+if(contacts.length === 0){
+  contacts = [
+    {id:"seed1", name:"Ayesha Rahman", phone:"01711000111", email:"ayesha@gmail.com", group:"Family", company:"", address:"Dhaka", notes:"", favorite:true, blocked:false},
+    {id:"seed2", name:"Nabil Chowdhury", phone:"01911000222", email:"nabil@outlook.com", group:"Colleague", company:"TechNova", address:"Dhaka", notes:"", favorite:false, blocked:false},
+  ];
+  save();
+}
+renderAll();
+</script>
+</body>
+</html>
