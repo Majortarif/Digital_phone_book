@@ -1,30 +1,8 @@
-# Digital_phone_book
-Modernized Digital Phonebook 2026 (C console app). Contact CRUD + block, favorites, statistics &amp; export. Color UI + animations. Polishing my old 2022 project with proper fixes.
 /* =======================================================================
    DIGITAL PHONEBOOK 2026
    Modernized version of the original 2022 console phonebook project.
    Windows console app (Code::Blocks / MinGW GCC).
-
-   What changed from the 2022 version:
-     - Colorized console UI (Windows console colors)
-     - Typewriter title animation + spinner/loading-bar animations
-     - New features: Favorite contacts, Contact statistics dashboard,
-       Export contacts to a readable .txt file
-     - Fixed real bugs: gets() (removed in modern C, unsafe) -> safeInput(),
-       missing function prototypes causing implicit-declaration errors,
-       Sleep() instead of sleep() (this is Windows, sleep() doesn't exist
-       without unistd.h), fflush(stdin) replaced with a real input-buffer
-       clear, scanf("%c") missing a leading space (was skipping/blocking
-       on leftover newlines), undefined-behavior in getGroup/getRelationship
-       when no case matched, PhoneNumber/Phone arrays too small to hold
-       an 11-digit number + null terminator.
-
-   NOTE: because a field (IsFavorite) was added to struct Contact, this
-   version is NOT binary-compatible with an old contact.txt/id.txt from
-   the 2022 program. Delete any old contact.txt / id.txt before running
-   this version for the first time, so a fresh file is created.
    ======================================================================= */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,20 +12,21 @@ Modernized Digital Phonebook 2026 (C console app). Contact CRUD + block, favorit
 #include <conio.h>
 
 /* ---------------------------- enums / types --------------------------- */
-
 enum Type { Mobile = 1, Home = 2, Work = 3, Main = 4, Other = 5 };
 enum Group { Emergency = 1, Colleague = 2, Family = 3, Friend = 4, Not_Available = 5 };
-enum Relationship { Parent = 1, Mother = 2, Father = 3, Brother = 4, Sister = 5, Friends = 6, Relative = 7, Unknown = 8 };
-typedef enum { False, True } boolean;
+enum Relationship { Parent = 1, Mother = 2, Father = 3, Brother = 4, Sister = 5, Friends = 6, Relative = 7, Rel_Unknown = 8 };
+
+/* Fixed: renamed to avoid conflict with Windows boolean */
+typedef enum { False = 0, True = 1 } Bool;
 
 /* Windows console colors */
-#define CLR_TITLE      11   /* bright cyan   */
-#define CLR_MENU       14   /* yellow        */
-#define CLR_TEXT       7    /* light gray    */
-#define CLR_SUCCESS    10   /* bright green  */
-#define CLR_ERROR      12   /* bright red    */
-#define CLR_ACCENT     13   /* magenta       */
-#define CLR_FAV        6    /* gold/brown    */
+#define CLR_TITLE      11
+#define CLR_MENU       14
+#define CLR_TEXT       7
+#define CLR_SUCCESS    10
+#define CLR_ERROR      12
+#define CLR_ACCENT     13
+#define CLR_FAV        6
 
 struct Contact {
     int Id;
@@ -61,25 +40,23 @@ struct Contact {
     int Relationship;
     char Notes[100];
     char Phone[20];
-    boolean IsBlocked;
-    boolean IsFavorite;
+    Bool IsBlocked;
+    Bool IsFavorite;
 };
 
 struct Contact contacts[1000];
 struct Contact contactList[1000];
 int Total = 0;
 int K = 0;
-boolean showBlockContacts = False;
-boolean showFavOnly = False;
+Bool showBlockContacts = False;
+Bool showFavOnly = False;
 
 /* ------------------------------ prototypes ----------------------------- */
-
 void showTitle();
 void showOptions();
 void processUserOption();
 void Reset();
 void showContactActionTitle(const char a[100]);
-
 void setColor(int color);
 void resetColor();
 void typewriter(const char *text, int delayMs, int color);
@@ -88,50 +65,38 @@ void printDivider();
 void safeInput(char *buffer, int size);
 void clearInputBuffer();
 void pauseKey();
-
 int getId();
 void setContactId(int currentId);
 int checkDomain(const char *email, const char *domain);
-
 struct Contact getContactInfo();
 void sortContactList();
 void AddToContactList(struct Contact contact);
 void CreateNewContact();
-
 const char *getGroup(int g);
 const char *getRelationship(int r);
 void showContacts(int i, struct Contact contact);
-
 void loadContacts(int hide);
 void ViewContactList();
 void ViewContacts();
-
 void blockAnyContact();
 void BlockContact();
 void unblockAnyContact();
 void ViewBlockContact();
-
 void RemoveAnyContact();
 void RemoveContact();
-
 struct Contact EditContactInfo(struct Contact contact);
 void EditAnyContact();
 void EditContact();
-
 void findBy(int id, char *key);
 void FindAnyContact();
 void FindContact();
-
 void toggleFavoriteAny();
 void ToggleFavorite();
-void showFavoriteList();
 void ViewFavorites();
-
 void showStatistics();
 void exportContacts();
 
 /* ------------------------------ UI helpers ------------------------------ */
-
 void setColor(int color) {
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
 }
@@ -145,7 +110,6 @@ void clearInputBuffer() {
     while ((c = getchar()) != '\n' && c != EOF) { }
 }
 
-/* Reads a line safely (replaces the old unsafe gets()) and strips the newline */
 void safeInput(char *buffer, int size) {
     if (fgets(buffer, size, stdin) != NULL) {
         size_t len = strlen(buffer);
@@ -202,7 +166,6 @@ void pauseKey() {
 }
 
 /* --------------------------------- Menus --------------------------------- */
-
 void showTitle() {
     printf("\n\n");
     setColor(CLR_TITLE);
@@ -246,7 +209,6 @@ void processUserOption() {
         n = -1;
     }
     clearInputBuffer();
-
     switch (n) {
         case 1: CreateNewContact(); break;
         case 2: K = 0; showBlockContacts = False; ViewContacts(); break;
@@ -293,7 +255,6 @@ int main() {
 }
 
 /* ------------------------------ ID handling ------------------------------ */
-
 int getId() {
     FILE *fp;
     int id = 0;
@@ -303,7 +264,6 @@ int getId() {
         fclose(fp);
     }
     id = (id == 0) ? 1 : id + 1;
-
     fp = fopen("id.txt", "w");
     if (fp != NULL) {
         fprintf(fp, "%d", id);
@@ -331,14 +291,12 @@ int checkDomain(const char *email, const char *domain) {
 }
 
 /* --------------------------- Getting contact info -------------------------- */
-
 struct Contact getContactInfo() {
     struct Contact contact;
     int valid = 0;
     int g, r;
 
     contact.Id = getId();
-
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
     strftime(contact.CreateTime, sizeof(contact.CreateTime), "%Y-%m-%d %H:%M", t);
@@ -389,6 +347,7 @@ struct Contact getContactInfo() {
         printf("\t\t\tPhone: ");
         safeInput(contact.Phone, sizeof(contact.Phone));
     }
+
     strncpy(contact.PhoneNumber, contact.Phone, sizeof(contact.PhoneNumber) - 1);
     contact.PhoneNumber[sizeof(contact.PhoneNumber) - 1] = '\0';
 
@@ -415,26 +374,20 @@ void sortContactList() {
 void AddToContactList(struct Contact contact) {
     FILE *fp;
     char ch;
-
     loadContacts(1);
-
     contactList[Total] = contact;
     Total = Total + 1;
     sortContactList();
-
     loadingAnimation("Saving new contact", 14);
-
     fp = fopen("contact.txt", "wb");
     fwrite(contactList, sizeof(struct Contact), Total, fp);
     fclose(fp);
-
     setColor(CLR_SUCCESS);
     printf("\t\t\tContact added successfully!\n");
     resetColor();
     printf("\t\t\tAdd another contact? (Y = Yes, N = No): ");
     scanf(" %c", &ch);
     clearInputBuffer();
-
     if (ch == 'Y' || ch == 'y') {
         CreateNewContact();
     } else {
@@ -451,7 +404,6 @@ void CreateNewContact() {
 }
 
 /* ------------------------------ Lookups ------------------------------ */
-
 const char *getGroup(int g) {
     switch (g) {
         case 1: return "Emergency";
@@ -496,7 +448,6 @@ void loadContacts(int hide) {
     struct Contact contact;
     FILE *fp;
     int i = 0;
-
     Total = 0;
     K = 0;
     fp = fopen("contact.txt", "rb");
@@ -508,19 +459,15 @@ void loadContacts(int hide) {
         }
         return;
     }
-
     if (hide == 0) loadingAnimation("Loading contacts", 10);
-
     while (fread(&contact, sizeof(contact), 1, fp) == 1) {
         contactList[i++] = contact;
-
-        boolean matches;
+        Bool matches;
         if (showFavOnly) {
             matches = contact.IsFavorite;
         } else {
             matches = (contact.IsBlocked == showBlockContacts);
         }
-
         if (matches) {
             K++;
             contacts[K - 1] = contact;
@@ -528,7 +475,6 @@ void loadContacts(int hide) {
         }
     }
     Total = i;
-
     if (K < 1 && hide == 0) {
         setColor(CLR_ERROR);
         printf("\t\t\tNo contact found!\n");
@@ -538,7 +484,6 @@ void loadContacts(int hide) {
 }
 
 /* --------------------------------- View --------------------------------- */
-
 void ViewContactList() {
     loadContacts(0);
     pauseKey();
@@ -554,20 +499,16 @@ void ViewContacts() {
 }
 
 /* -------------------------------- Block ---------------------------------- */
-
 void blockAnyContact() {
     FILE *fp;
     int id, i, n;
     char ch;
     n = K;
-
     if (K == 0) { pauseKey(); Reset(); }
-
     printf("\n\t\t\tEnter contact Id to block (0 = Show Options): ");
     if (scanf("%d", &id) != 1) id = 0;
     clearInputBuffer();
     if (id == 0) Reset();
-
     if (id > K || id < 1) {
         setColor(CLR_ERROR);
         printf("\n\t\t\tNo contact found for Id : %d\n", id);
@@ -588,7 +529,6 @@ void blockAnyContact() {
         printf("\n\t\t\tContact blocked successfully!\n");
         resetColor();
     }
-
     if (n > 0) {
         printf("\n\t\t\tBlock another contact? (Y = Yes, N = No): ");
         ch = getch();
@@ -611,14 +551,11 @@ void unblockAnyContact() {
     int id, i, n;
     char ch;
     n = K;
-
     if (K == 0) { pauseKey(); Reset(); }
-
     printf("\n\t\t\tEnter contact Id to unblock (0 = Show Options): ");
     if (scanf("%d", &id) != 1) id = 0;
     clearInputBuffer();
     if (id == 0) Reset();
-
     if (id > K || id < 1) {
         setColor(CLR_ERROR);
         printf("\n\t\t\tNo contact found for Id : %d\n", id);
@@ -638,7 +575,6 @@ void unblockAnyContact() {
         printf("\n\t\t\tContact unblocked successfully!\n");
         resetColor();
     }
-
     if (n > 0) {
         printf("\n\t\t\tUnblock another contact? (Y = Yes, N = No): ");
         ch = getch();
@@ -657,20 +593,16 @@ void ViewBlockContact() {
 }
 
 /* -------------------------------- Remove --------------------------------- */
-
 void RemoveAnyContact() {
     FILE *fp;
     int id, i, n;
     char ch;
     n = K;
-
     if (K == 0) { pauseKey(); Reset(); }
-
     printf("\n\t\t\tEnter contact Id to remove (0 = Show Options): ");
     if (scanf("%d", &id) != 1) id = 0;
     clearInputBuffer();
     if (id == 0) Reset();
-
     if (id > K || id < 1) {
         setColor(CLR_ERROR);
         printf("\n\t\t\tNo contact found for Id : %d\n", id);
@@ -695,7 +627,6 @@ void RemoveAnyContact() {
             resetColor();
         }
     }
-
     if (n > 0) {
         printf("\n\t\t\tRemove another contact? (Y = Yes, N = No): ");
         ch = getch();
@@ -714,7 +645,6 @@ void RemoveContact() {
 }
 
 /* --------------------------------- Edit ----------------------------------- */
-
 struct Contact EditContactInfo(struct Contact contact) {
     char ch;
     int g, r;
@@ -801,14 +731,11 @@ void EditAnyContact() {
     char ch;
     struct Contact contact;
     n = K;
-
     if (K == 0) { pauseKey(); Reset(); }
-
     printf("\n\t\t\tEnter contact Id to edit (0 = Show Options): ");
     if (scanf("%d", &id) != 1) id = 0;
     clearInputBuffer();
     if (id == 0) Reset();
-
     if (id > K || id < 1) {
         setColor(CLR_ERROR);
         printf("\n\t\t\tNo contact found for Id : %d\n", id);
@@ -830,7 +757,6 @@ void EditAnyContact() {
         printf("\n\n\t\t\tContact edited successfully!\n");
         resetColor();
     }
-
     if (n > 0) {
         printf("\n\t\t\tEdit another contact? (Y = Yes, N = No): ");
         ch = getch();
@@ -849,7 +775,6 @@ void EditContact() {
 }
 
 /* --------------------------------- Find ----------------------------------- */
-
 void findBy(int id, char *key) {
     struct Contact result[1000];
     int i, k = 0;
@@ -861,10 +786,8 @@ void findBy(int id, char *key) {
         else if (id == 4 && strstr(contacts[i].Company, key)) hit = 1;
         else if (id == 5 && strstr(contacts[i].Address, key)) hit = 1;
         else if (id == 6 && strstr(contacts[i].Notes, key)) hit = 1;
-
         if (hit) result[k++] = contacts[i];
     }
-
     if (k == 0) {
         setColor(CLR_ERROR);
         printf("\n\t\t\tNo contact found for search key : %s\n", key);
@@ -878,13 +801,10 @@ void FindAnyContact() {
     int id;
     char ch;
     char key[100];
-
     if (Total == 0) { pauseKey(); Reset(); }
-
     printf("\n\t\t\tFind by (1.Name 2.Phone 3.Email 4.Company 5.Address 6.Notes) (0 = Show Options): ");
     if (scanf("%d", &id) != 1) id = 0;
     clearInputBuffer();
-
     if (id == 0) {
         Reset();
     } else {
@@ -893,7 +813,6 @@ void FindAnyContact() {
         if (id > 6 || id < 1) id = 1;
         findBy(id, key);
     }
-
     printf("\n\t\t\tFind another contact? (Y = Yes, N = No): ");
     ch = getch();
     if (ch == 'Y' || ch == 'y') { FindContact(); }
@@ -910,18 +829,14 @@ void FindContact() {
 }
 
 /* ------------------------------- Favorites --------------------------------- */
-
 void toggleFavoriteAny() {
     FILE *fp;
     int id, i;
-
     if (K == 0) { pauseKey(); Reset(); }
-
     printf("\n\t\t\tEnter contact Id to mark/unmark favorite (0 = Show Options): ");
     if (scanf("%d", &id) != 1) id = 0;
     clearInputBuffer();
     if (id == 0) Reset();
-
     if (id > K || id < 1) {
         setColor(CLR_ERROR);
         printf("\n\t\t\tNo contact found for Id : %d\n", id);
@@ -965,7 +880,6 @@ void ViewFavorites() {
 }
 
 /* ------------------------------- Statistics --------------------------------- */
-
 void showStatistics() {
     FILE *fp;
     struct Contact c;
@@ -1006,8 +920,8 @@ void showStatistics() {
     for (int g = 1; g <= 5; g++) {
         printf("\t\t\t  %-14s: %d\n", getGroup(g), groupCount[g]);
     }
-    printDivider();
 
+    printDivider();
     setColor(CLR_MENU);
     printf("\t\t\tBy Relationship:\n");
     resetColor();
@@ -1020,7 +934,6 @@ void showStatistics() {
 }
 
 /* -------------------------------- Export ------------------------------------ */
-
 void exportContacts() {
     FILE *in, *out;
     struct Contact c;
@@ -1037,6 +950,7 @@ void exportContacts() {
         resetColor();
         pauseKey();
         Reset();
+        return;
     }
 
     out = fopen("contacts_export.txt", "w");
@@ -1055,15 +969,14 @@ void exportContacts() {
         fprintf(out, "   Notes       : %s\n", c.Notes);
         fprintf(out, "   Status      : %s\n\n", c.IsBlocked == True ? "Blocked" : "Active");
     }
+
     fclose(in);
     fclose(out);
 
     loadingAnimation("Writing contacts_export.txt", 14);
-
     setColor(CLR_SUCCESS);
     printf("\t\t\tExported %d contact(s) to contacts_export.txt\n", count);
     resetColor();
-
     pauseKey();
     Reset();
 }
