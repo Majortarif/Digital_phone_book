@@ -35,18 +35,7 @@
 
 ---
 
-## 🖥️ Two Ways to Experience It
 
-### 1. Original — C Console App
-The real project: a from-scratch Contact Management System in C, built for
-Windows console using `windows.h` / `conio.h`.
-
-### 2. Bonus — Browser Version
-A companion single-page version of the same phonebook, built in HTML/CSS/JS,
-hosted live on GitHub Pages so anyone can try it with one click — no compiler
-required. See the **Live Web Demo** link above.
-
----
 
 ## 🚀 How to Run (C Console App)
 
